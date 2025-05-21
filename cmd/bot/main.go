@@ -8,8 +8,8 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
-	"github.com/thornhall/chatgpt-discord-go/chatgptclient"
-	"github.com/thornhall/chatgpt-discord-go/handlers"
+	"github.com/thornhall/chatgpt-discord-go/internal/chatgptclient"
+	"github.com/thornhall/chatgpt-discord-go/internal/handlers"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 
 	if token == "" {
-		// If not already present in the environment, we're probably running it locally with a .env file
+		// Fallback to .env
 		err := godotenv.Load(".env")
 		if err != nil {
 			log.Fatal("Unable to load .env file")

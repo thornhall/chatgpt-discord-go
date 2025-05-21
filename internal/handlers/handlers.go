@@ -8,6 +8,9 @@ import (
 	"github.com/thornhall/chatgpt-discord-go/chatgptclient"
 )
 
+type Test struct {
+}
+
 func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, chatService *chatgptclient.ChatService) {
 	if m.Author.Bot {
 		return
@@ -37,7 +40,8 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, chatServic
 		resp, err := chatService.GetChatGPTResponse(
 			`Respond as though you're giving dialogue like an Oblivion NPC from the video game Elder Scrolls 4: 
 		Oblivion but adapt it to the user's input, lean towards humor. Keep the responses under one paragraph. 
-		Do not include quotation marks around your response. User input starts now: ` + text + ``)
+		Do not include quotation marks around your response. If user input is empty just say something funny an oblivion guard would say. 
+		User input starts now: ` + text + ``)
 		if err != nil {
 			log.Print("Request to chatGPT failed. " + err.Error() + "")
 			return
