@@ -44,6 +44,5 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, chatServic
 		}
 		s.ChannelMessageSend(m.ChannelID, resp.Choices[0].Message.Content)
 	default:
-		// Optionally handle unknown commands
 	}
 }

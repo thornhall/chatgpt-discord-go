@@ -13,22 +13,27 @@ import (
 )
 
 func main() {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Unable to load .env file")
-	}
 	token := os.Getenv("DISCORD_BOT_TOKEN")
+	apiKey := os.Getenv("OPENAI_API_KEY")
+
+	if token == "" {
+		// If not already present in the environment, we're probably running it locally with a .env file
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Fatal("Unable to load .env file")
+		}
+		token = os.Getenv("DISCORD_BOT_TOKEN")
+		apiKey = os.Getenv("OPENAI_API_KEY")
+	}
+
+	if apiKey == "" {
+		log.Fatal("OPENAI_API_KEY not set")
+	}
 	if token == "" {
 		log.Fatal("DISCORD_BOT_TOKEN not set")
 	}
 
-	apiKey := os.Getenv("OPENAI_API_KEY")
-	if apiKey == "" {
-		log.Fatal("OPENAI_API_KEY not set")
-	}
-
 	chatService := chatgptclient.NewChatService(apiKey)
-
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		log.Fatalf("Error creating Discord session: %v", err)
