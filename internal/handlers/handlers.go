@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/thornhall/chatgpt-discord-go/chatgptclient"
+	"github.com/thornhall/chatgpt-discord-go/internal/chatgptclient"
 )
 
 type Test struct {
