@@ -9,7 +9,7 @@ import (
 )
 
 type DiscordSession interface {
-	ChannelMessageSend(channelID string, content string) (*discordgo.Message, error)
+	ChannelMessageSend(channelID string, content string, options ...discordgo.RequestOption) (*discordgo.Message, error)
 }
 
 type HandlerService interface {
