@@ -8,10 +8,15 @@ import (
 	"github.com/thornhall/chatgpt-discord-go/internal/chatgptclient"
 )
 
-type Test struct {
+type DiscordSession interface {
+	ChannelMessageSend(channelID string, content string) (*discordgo.Message, error)
 }
 
-func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, chatService *chatgptclient.ChatService) {
+type HandlerService interface {
+	MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, chatService *chatgptclient.ChatClient)
+}
+
+func MessageHandler(session DiscordSession, m *discordgo.MessageCreate, chatService chatgptclient.ChatService) {
 	if m.Author.Bot {
 		return
 	}
@@ -20,21 +25,21 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, chatServic
 
 	switch {
 	case content == "!ping":
-		s.ChannelMessageSend(m.ChannelID, "Pong!")
+		session.ChannelMessageSend(m.ChannelID, "Pong!")
 
 	case content == "!hello":
-		s.ChannelMessageSend(m.ChannelID, "Hello there, "+m.Author.Username+"!")
+		session.ChannelMessageSend(m.ChannelID, "Hello there, "+m.Author.Username+"!")
 
 	case strings.HasPrefix(content, "!echo "):
 		text := strings.TrimPrefix(content, "!echo ")
-		s.ChannelMessageSend(m.ChannelID, text)
+		session.ChannelMessageSend(m.ChannelID, text)
 	case content == "!tresspass":
 		resp, err := chatService.GetChatGPTResponse("Respond as though a player has just committed a crime in the video game Elder Scrolls 4: Oblivion.")
 		if err != nil {
 			log.Print("Request to chatGPT failed. " + err.Error() + "")
 			return
 		}
-		s.ChannelMessageSend(m.ChannelID, resp.Choices[0].Message.Content)
+		session.ChannelMessageSend(m.ChannelID, resp.Choices[0].Message.Content)
 	case strings.HasPrefix(content, "!dialogue"):
 		text := strings.TrimPrefix(content, "!dialogue")
 		resp, err := chatService.GetChatGPTResponse(
@@ -46,7 +51,7 @@ func MessageHandler(s *discordgo.Session, m *discordgo.MessageCreate, chatServic
 			log.Print("Request to chatGPT failed. " + err.Error() + "")
 			return
 		}
-		s.ChannelMessageSend(m.ChannelID, resp.Choices[0].Message.Content)
+		session.ChannelMessageSend(m.ChannelID, resp.Choices[0].Message.Content)
 	default:
 	}
 }

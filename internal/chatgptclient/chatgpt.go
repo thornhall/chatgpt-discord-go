@@ -7,17 +7,21 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 )
 
-type ChatService struct {
+type ChatService interface {
+	GetChatGPTResponse(promptText string) (*openai.ChatCompletionResponse, error)
+}
+
+type ChatClient struct {
 	client *openai.Client
 }
 
-func NewChatService(apiKey string) *ChatService {
-	return &ChatService{
+func NewChatService(apiKey string) *ChatClient {
+	return &ChatClient{
 		client: openai.NewClient(apiKey),
 	}
 }
 
-func (c *ChatService) GetChatGPTResponse(promptText string) (*openai.ChatCompletionResponse, error) {
+func (c *ChatClient) GetChatGPTResponse(promptText string) (*openai.ChatCompletionResponse, error) {
 	req := openai.ChatCompletionRequest{
 		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{

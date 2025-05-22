@@ -1,0 +1,38 @@
+name: Run Go Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
+g
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.55.2
+          args: --timeout=3m
+
+      - name: Run tests
+        run: go test ./... -v
+
+      - name: Upload coverage report
+        if: success()
+        run: |
+          go test ./... -coverprofile=coverage.out
+          go tool cover -func=coverage.out
