@@ -32,14 +32,6 @@ func startBot(botName string, token string, chatService chatgptclient.ChatServic
 		handlers.MessageHandler(s, m, chatService, botName, manager)
 	})
 
-	go func() {
-		for msg := range manager.Bus {
-			if msg.ToBot == botName {
-				handlers.BotMessageHandler(dg, chatService, msg, manager)
-			}
-		}
-	}()
-
 	err = dg.Open()
 	if err != nil {
 		return nil, err
