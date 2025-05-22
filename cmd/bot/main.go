@@ -21,8 +21,7 @@ var envToBotRole = map[string]string{
 	constants.WhompBotEnvVar:      constants.WhompBot,
 }
 
-func startBot(botName string, token string, openAiToken string, manager *util.BotManager) (*discordgo.Session, error) {
-	chatService := chatgptclient.NewChatService(openAiToken)
+func startBot(botName string, token string, chatService chatgptclient.ChatService, manager *util.BotManager) (*discordgo.Session, error) {
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
@@ -61,7 +60,7 @@ func main() {
 	}
 
 	manager := &util.BotManager{
-		Bots: make(map[string]*discordgo.Session),
+		Bots: make(map[string]util.BotInstance),
 		Bus:  make(chan util.BotMessage),
 	}
 
@@ -72,12 +71,29 @@ func main() {
 		if token == "" {
 			log.Fatalf("Missing discord API token for bot %s)", botName)
 		}
-		dg, err := startBot(botName, token, openAiKey, manager)
+		chatService := chatgptclient.NewChatService(openAiKey)
+		dg, err := startBot(botName, token, chatService, manager)
 		if err != nil {
 			log.Fatalf("Failed to start bot %s: %v", botName, err)
 		}
 		sessions = append(sessions, dg)
+
+		manager.Bots[botName] = util.BotInstance{
+			Session:     dg,
+			ChatService: chatService,
+		}
 	}
+
+	go func() {
+		for msg := range manager.Bus {
+			bot := manager.Bots[msg.ToBot]
+			if bot.Session == nil || bot.ChatService == nil {
+				log.Printf("Missing bot instance for %s", msg.ToBot)
+				continue
+			}
+			go handlers.BotMessageHandler(bot.Session, bot.ChatService, msg, manager)
+		}
+	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
