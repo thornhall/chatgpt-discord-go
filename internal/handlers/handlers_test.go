@@ -7,18 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/thornhall/chatgpt-discord-go/internal/chatgptclient"
 	"github.com/thornhall/chatgpt-discord-go/internal/constants"
+	"github.com/thornhall/chatgpt-discord-go/internal/util"
 )
-
-type MockDiscordSession struct {
-	SentMessages []string
-}
-
-var _ DiscordSession = (*MockDiscordSession)(nil)
-
-func (m *MockDiscordSession) ChannelMessageSend(channelID string, content string, options ...discordgo.RequestOption) (*discordgo.Message, error) {
-	m.SentMessages = append(m.SentMessages, content)
-	return &discordgo.Message{Content: content}, nil
-}
 
 func TestMessageHandler(t *testing.T) {
 	tests := []struct {
@@ -48,7 +38,8 @@ func TestMessageHandler(t *testing.T) {
 				},
 			}
 
-			MessageHandler(mockSession, message, mockChat, constants.OblivionGuardBot)
+			botManager := &util.BotManager{}
+			MessageHandler(mockSession, message, mockChat, constants.OblivionGuardBot, botManager)
 			assert.Contains(t, mockSession.SentMessages, tt.expectedReply)
 		})
 	}

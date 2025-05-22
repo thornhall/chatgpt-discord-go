@@ -12,6 +12,7 @@ import (
 	"github.com/thornhall/chatgpt-discord-go/internal/chatgptclient"
 	"github.com/thornhall/chatgpt-discord-go/internal/constants"
 	"github.com/thornhall/chatgpt-discord-go/internal/handlers"
+	"github.com/thornhall/chatgpt-discord-go/internal/util"
 )
 
 var envToBotRole = map[string]string{
@@ -20,7 +21,7 @@ var envToBotRole = map[string]string{
 	constants.WhompBotEnvVar:      constants.WhompBot,
 }
 
-func startBot(botName string, token string, openAiToken string) (*discordgo.Session, error) {
+func startBot(botName string, token string, openAiToken string, manager *util.BotManager) (*discordgo.Session, error) {
 	chatService := chatgptclient.NewChatService(openAiToken)
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
@@ -29,8 +30,16 @@ func startBot(botName string, token string, openAiToken string) (*discordgo.Sess
 
 	dg.Identify.Intents = discordgo.IntentsGuildMessages
 	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		handlers.MessageHandler(s, m, chatService, botName)
+		handlers.MessageHandler(s, m, chatService, botName, manager)
 	})
+
+	go func() {
+		for msg := range manager.Bus {
+			if msg.ToBot == botName {
+				handlers.BotMessageHandler(dg, chatService, msg, manager)
+			}
+		}
+	}()
 
 	err = dg.Open()
 	if err != nil {
@@ -51,6 +60,11 @@ func main() {
 		log.Fatal("OPENAI_API_KEY not set")
 	}
 
+	manager := &util.BotManager{
+		Bots: make(map[string]*discordgo.Session),
+		Bus:  make(chan util.BotMessage),
+	}
+
 	var sessions []*discordgo.Session
 
 	for envVar, botName := range envToBotRole {
@@ -58,7 +72,7 @@ func main() {
 		if token == "" {
 			log.Fatalf("Missing discord API token for bot %s)", botName)
 		}
-		dg, err := startBot(botName, token, openAiKey)
+		dg, err := startBot(botName, token, openAiKey, manager)
 		if err != nil {
 			log.Fatalf("Failed to start bot %s: %v", botName, err)
 		}
