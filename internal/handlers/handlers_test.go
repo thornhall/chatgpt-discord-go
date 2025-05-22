@@ -6,6 +6,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/stretchr/testify/assert"
 	"github.com/thornhall/chatgpt-discord-go/internal/chatgptclient"
+	"github.com/thornhall/chatgpt-discord-go/internal/constants"
 )
 
 type MockDiscordSession struct {
@@ -47,7 +48,7 @@ func TestMessageHandler(t *testing.T) {
 				},
 			}
 
-			MessageHandler(mockSession, message, mockChat)
+			MessageHandler(mockSession, message, mockChat, constants.OblivionGuardBot)
 			assert.Contains(t, mockSession.SentMessages, tt.expectedReply)
 		})
 	}

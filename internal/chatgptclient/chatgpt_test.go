@@ -39,7 +39,7 @@ func TestMockChatService_GetChatGPTResponse(t *testing.T) {
 				MockError:    tt.mockError,
 			}
 
-			resp, err := mock.GetChatGPTResponse(tt.prompt)
+			resp, err := mock.GetChatGPTResponse(tt.prompt, "Test")
 
 			if tt.wantErr {
 				assert.Error(t, err)

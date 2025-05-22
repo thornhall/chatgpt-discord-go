@@ -11,7 +11,7 @@ type MockChatService struct {
 
 var _ ChatService = (*MockChatService)(nil)
 
-func (m *MockChatService) GetChatGPTResponse(prompt string) (*openai.ChatCompletionResponse, error) {
+func (m *MockChatService) GetChatGPTResponse(prompt string, rolePrompt string) (*openai.ChatCompletionResponse, error) {
 	return &openai.ChatCompletionResponse{
 		Choices: []openai.ChatCompletionChoice{
 			{

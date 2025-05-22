@@ -8,7 +8,7 @@ import (
 )
 
 type ChatService interface {
-	GetChatGPTResponse(promptText string) (*openai.ChatCompletionResponse, error)
+	GetChatGPTResponse(promptText string, rolePrompt string) (*openai.ChatCompletionResponse, error)
 }
 
 type ChatClient struct {
@@ -21,13 +21,13 @@ func NewChatService(apiKey string) *ChatClient {
 	}
 }
 
-func (c *ChatClient) GetChatGPTResponse(promptText string) (*openai.ChatCompletionResponse, error) {
+func (c *ChatClient) GetChatGPTResponse(promptText string, rolePrompt string) (*openai.ChatCompletionResponse, error) {
 	req := openai.ChatCompletionRequest{
 		Model: openai.GPT4o,
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    openai.ChatMessageRoleSystem,
-				Content: "You are a guard from the Elder Scrolls video game Oblivion.",
+				Content: rolePrompt,
 			},
 			{
 				Role:    openai.ChatMessageRoleUser,

@@ -4,53 +4,84 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 	"github.com/thornhall/chatgpt-discord-go/internal/chatgptclient"
+	"github.com/thornhall/chatgpt-discord-go/internal/constants"
 	"github.com/thornhall/chatgpt-discord-go/internal/handlers"
 )
 
-func main() {
-	token := os.Getenv("DISCORD_BOT_TOKEN")
-	apiKey := os.Getenv("OPENAI_API_KEY")
+var envToBotRole = map[string]string{
+	constants.OblivionGuardEnvVar: constants.OblivionGuardBot,
+	constants.ThwompBotEnvVar:     constants.ThwompBot,
+	constants.WhompBotEnvVar:      constants.WhompBot,
+}
 
-	if token == "" {
-		// Fallback to .env
-		err := godotenv.Load(".env")
-		if err != nil {
-			log.Fatal("Unable to load .env file")
-		}
-		token = os.Getenv("DISCORD_BOT_TOKEN")
-		apiKey = os.Getenv("OPENAI_API_KEY")
-	}
-
-	if apiKey == "" {
-		log.Fatal("OPENAI_API_KEY not set")
-	}
-	if token == "" {
-		log.Fatal("DISCORD_BOT_TOKEN not set")
-	}
-
-	chatService := chatgptclient.NewChatService(apiKey)
+func startBot(botName string, token string, openAiToken string) (*discordgo.Session, error) {
+	chatService := chatgptclient.NewChatService(openAiToken)
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
-		log.Fatalf("Error creating Discord session: %v", err)
-	}
-	dg.Identify.Intents = discordgo.IntentsGuildMessages
-	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
-		handlers.MessageHandler(s, m, chatService)
-	})
-	err = dg.Open()
-	if err != nil {
-		log.Fatalf("Error opening connection: %v", err)
+		return nil, err
 	}
 
-	log.Println("Bot is running. Press CTRL+C to exit.")
+	dg.Identify.Intents = discordgo.IntentsGuildMessages
+	dg.AddHandler(func(s *discordgo.Session, m *discordgo.MessageCreate) {
+		handlers.MessageHandler(s, m, chatService, botName)
+	})
+
+	err = dg.Open()
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("Bot %s is running", botName)
+	return dg, nil
+}
+
+func main() {
+	openAiKey := os.Getenv("OPENAI_API_KEY")
+	if openAiKey == "" {
+		_ = godotenv.Load(".env")
+		openAiKey = os.Getenv("OPENAI_API_KEY")
+	}
+	if openAiKey == "" {
+		log.Fatal("OPENAI_API_KEY not set")
+	}
+
+	var sessions []*discordgo.Session
+
+	for envVar, botName := range envToBotRole {
+		token := os.Getenv(envVar)
+		if token == "" {
+			log.Fatalf("Missing discord API token for bot %s)", botName)
+		}
+		dg, err := startBot(botName, token, openAiKey)
+		if err != nil {
+			log.Fatalf("Failed to start bot %s: %v", botName, err)
+		}
+		sessions = append(sessions, dg)
+	}
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	dg.Close()
+	log.Println("Received shutdown signal. Closing bots...")
+
+	var wg sync.WaitGroup
+	for _, session := range sessions {
+		wg.Add(1)
+		go func(s *discordgo.Session) {
+			defer wg.Done()
+			if err := s.Close(); err != nil {
+				log.Printf("Error closing session: %v", err)
+			}
+		}(session)
+	}
+	wg.Wait()
+
+	log.Println("All bots shut down gracefully. Exiting.")
 }
