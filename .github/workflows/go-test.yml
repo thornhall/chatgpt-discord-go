@@ -1,13 +1,5 @@
-name: Run Go Tests
-
-on:
-  push:
-    branches:
-      - main
-  pull_request:
-
 jobs:
-  test:
+  lint-and-test:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +11,7 @@ jobs:
         with:
           go-version: '1.24.0'
 
-      - name: Install dependencies
+      - name: Download dependencies
         run: go mod download
 
       - name: Run golangci-lint
@@ -36,3 +28,13 @@ jobs:
         run: |
           go test ./... -coverprofile=coverage.out
           go tool cover -func=coverage.out
+
+  deploy:
+    needs: lint-and-test
+    if: success() && github.event_name == 'push' && github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    steps:
+      - name: Deploy to Render
+        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
